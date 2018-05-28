@@ -19,7 +19,7 @@ class Game(object):
     def handle_board(self):
         pygame.init()
 
-        display = pygame.display.set_mode((0, 0), screen_mode = pygame.FULLSCREEN)
+        display = pygame.display.set_mode((0, 0), screen_mode=pygame.FULLSCREEN)
 
         clock = pygame.time.Clock()
         pygame.display.set_caption('Shesh Besh')
@@ -39,12 +39,29 @@ class Game(object):
                     sys.exit()
             pygame.display.flip()
 
+    def draw_pieces_in_slot(self, slot):
+        pieces = Piece.generate_num_pieces(slot.color, slot.pieces)
+
+        if slot.y < int(pos_constants.SCREEN_SIZE[1] / 2):
+            for i in range(len(pieces)):
+                pass
+                # add drawing
+        else:
+            pass
+            # slot is down - add drawing
+
+
+
+    def draw_pieces_in_all_slots(self):
+        for slot in self.board.slots:
+            if slot.color is not "":
+                draw_pieces_in_slot(slot)
+
 
 class Piece(pygame.sprite.Sprite):
-    def __init__(self, piece_data):
+    def __init__(self, color):
         pygame.sprite.Sprite.__init__(self)
-        self.info = piece_data
-        if self.info.color == "black":
+        if color is "black":
             self.image = pygame.image.load(
                 os.path.dirname(os.path.abspath(__file__)).replace("src", r"imgs\pngs\game_piece_black.png"))
         else:
@@ -52,6 +69,10 @@ class Piece(pygame.sprite.Sprite):
                 os.path.dirname(os.path.abspath(__file__)).replace("src", r"imgs\pngs\game_piece_white.png"))
 
         self.rect = self.image.get_rect()
+
+    @staticmethod
+    def generate_num_pieces(self, color, num):
+        return [Piece(color) for i in range(num)]
 
 """"
 class SelectedSlot(pygame.sprite):

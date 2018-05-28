@@ -23,7 +23,7 @@ class GameBoard(object):
                 x += pos_constants.OFFSET_MID_SLOT_X
 
             slots.append(GameSlot(x, y1, i))
-            slots.append(GameSlot(x, y2, NUM_SLOTS -  i - 1))
+            slots.append(GameSlot(x, y2, NUM_SLOTS - i - 1))
         return slots
 
     def get_slot_by_id(self, identity):
