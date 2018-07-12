@@ -4,7 +4,8 @@ __author__ = 'user'
 NUM_SLOTS = 24 # always even
 
 import sb_constants
-from random import randint
+from buttons import Button
+# from sb_graphics import Button
 
 
 """
@@ -12,16 +13,25 @@ Represents a data of the game board.
 
 Attributes:
     slots - a list of the slots of the board (all are GameSlot)
-    cubes - a tuple of two PlayCube to roll a random number.
+    cubes - a tuple of two PlayCube to roll_up a random number.
 """
 
 
 class GameBoard(object):
     def __init__(self):
-        self.slots = []
-        self.slots = self.init_slots()
-        self.cubes = (PlayCube(), PlayCube())
         self.me = Player("player1", "white")  # just starting values - will be changed after HelloClient
+        self.burned_black = GameSlot(368, 600, NUM_SLOTS)
+        self.burned_white = GameSlot(368, 100, NUM_SLOTS + 1)
+        self.out = GameSlot(786, 1, NUM_SLOTS + 2)
+        self.burned_black.button.set_size(40, 400)
+        self.burned_white.button.set_size(40, 400)
+        self.slots = self.init_slots()
+
+    def __str__(self):
+        ss = ""
+        for s in self.slots:
+            ss += " ".join([str(s.identity), str(s.pieces), s.color, "\n"])
+        return ss
 
     # creates GameSlot and sets to them their correct location on the board. Appends them to slots.
     def init_slots(self):
@@ -36,13 +46,22 @@ class GameBoard(object):
 
             slots.append(GameSlot(x, y1, i))
             slots.append(GameSlot(x, y2, NUM_SLOTS - i - 1))
+
+        self.burned_black.color = "black"
+        self.burned_white.color = "white"
+
         return slots
 
     # returns a slot by a given id
     def get_slot_by_id(self, identity):
         if identity == -1:
             return None
-
+        if identity == 24:
+            return self.burned_black
+        if identity == 25:
+            return self.burned_white
+        if identity == 26:
+            return self.out
         for s in self.slots:
             if s.identity == identity:
                 return s
@@ -98,16 +117,20 @@ class GameSlot(object):
         self.x = x
         self.y = y
 
+        if 24 > identity > 11:
+            self.button = Button(x, 500, 56, 383)
+        else:
+            if identity == 24 or identity == 25:
+                self.button = Button(x, y, 56, 383)
+            else:
+                self.button = Button(x, y, 900 - x, 900 - y)
+
     def add(self):
         self.pieces += 1
 
-    def rem(self):
+    def remove(self):
         self.pieces -= 1
 
+    def __str__(self):
+        return "~".join([str(self.pieces), self.color, str(self.x), str(self.y)])
 
-class PlayCube(object):
-    def __init__(self):
-        self.num = 0
-
-    def roll(self):
-        self.num = randint(0, 6)

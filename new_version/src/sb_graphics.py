@@ -1,9 +1,11 @@
 from sb_constants import SCREEN_SIZE
 from pygame.locals import *
+from buttons import Button, ImageButton
+from sb_dice import Dice
 from sb_data import *
 import webbrowser
 import threading
-import sb_server
+# import sb_server
 import pygame
 import sys
 import os
@@ -52,30 +54,38 @@ class Game(object):
         self.display = pygame.display.set_mode(SCREEN_SIZE)
         self.clock = pygame.time.Clock()
 
-        self.background = pygame.image.load(
-            os.path.dirname(PATH).replace("new_version", r"imgs\pngs\game_board.png"))
-        self.start_menu = pygame.image.load(
-            os.path.dirname(PATH).replace("new_version", r"imgs\pngs\intro_menu.png"))
-        self.piece_glow = pygame.image.load(
-            os.path.dirname(PATH).replace("new_version", r"imgs\pngs\game_piece_glow.png"))
-        self.waiting_screen = pygame.image.load(
-            os.path.dirname(PATH).replace("new_version", r"imgs\pngs\waiting_screen.png"))
+        self.background = pygame.image.load("imgs\\pngs\\game_board.png")
+        self.start_menu = pygame.image.load("imgs\\pngs\\intro_menu.png")
+        self.piece_glow = pygame.image.load("imgs\\pngs\\game_piece_glow.png")
+        self.waiting_screen = pygame.image.load("imgs\\pngs\\waiting_screen.png")
+        self.roll_button_released = pygame.image.load("imgs\\pngs\\roll_button.jpg")
+        self.roll_button_pressed = pygame.image.load("imgs\\pngs\\roll_button_shadow.jpg")
+        self.roll_button = ImageButton(self.display, 340, 400, self.roll_button_released, self.roll_button_pressed)
 
         self.board = GameBoard()
 
-    def handle_menu_clicks(self, mouse):
-        play_click = self.play_button(mouse)
-        instr_click = self.instructions_button(mouse)
+        self.dice = (Dice(SCREEN_SIZE[0] / 4, SCREEN_SIZE[1] / 2, self.display),
+                     Dice(SCREEN_SIZE[0] / 4, SCREEN_SIZE[1] / 2 - 60, self.display))
 
+    def reset_dice(self):
+        self.dice[0].x = sb_constants.DICE_INIT_LOC[0]
+        self.dice[0].y = sb_constants.DICE_INIT_LOC[1]
+        self.dice[1].x = sb_constants.DICE_INIT_LOC[0]
+        self.dice[1].y = sb_constants.DICE_INIT_LOC[1] - 60
+        # return self.dice
+
+    def handle_menu_clicks(self, mouse):
+        play_click = self.play_button()
+        instr_click = self.instructions_button(mouse)
         if play_click:
             return 1
         elif instr_click:
             return 2
 
-    def play_button(self, mouse):
-        if mouse.get_pressed()[0] == 1:
-            correct_x = (mouse.get_pos()[0] > sb_constants.PLAY_BUTTON_X_1) and (mouse.get_pos()[0] < sb_constants.PLAY_BUTTON_X_2)
-            correct_y = (mouse.get_pos()[1] > sb_constants.PLAY_BUTTON_Y_1) and (mouse.get_pos()[1] < sb_constants.PLAY_BUTTON_Y_2)
+    def play_button(self):
+        if pygame.mouse.get_pressed()[0] == 1:
+            correct_x = (pygame.mouse.get_pos()[0] > sb_constants.PLAY_BUTTON_X_1) and (pygame.mouse.get_pos()[0] < sb_constants.PLAY_BUTTON_X_2)
+            correct_y = (pygame.mouse.get_pos()[1] > sb_constants.PLAY_BUTTON_Y_1) and (pygame.mouse.get_pos()[1] < sb_constants.PLAY_BUTTON_Y_2)
             if correct_x and correct_y:
                 return True
             return False
@@ -90,7 +100,6 @@ class Game(object):
                 return True
             return False
 
-
     def set_board(self):
         all_pieces = self.draw_pieces_in_all_slots()
         return all_pieces
@@ -101,7 +110,7 @@ class Game(object):
         pygame.display.set_icon(icon)
 
     @staticmethod
-    def open_instructions(self):
+    def open_instructions():
         webbrowser.open(instructions)
 
     def start_menu_clicks(self, mouse, is_first):
@@ -148,22 +157,51 @@ class Game(object):
         pygame.display.flip()
 
         while True:  # main game loop
-            for event in pygame.event.get():
+            events = pygame.event.get()
+            for event in events:
                 mouse = pygame.mouse
-                events = pygame.event.get()
 
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
 
-                self.handle_slots_clicks(mouse)
+            self.update_screen()
+            self.roll_button.show()
+            if self.roll_button.is_pressed(events):
+                self.dice[0].roll_up()
+                self.dice[1].roll_down()
+            self.dice[0].show()
+            self.dice[1].show()
+
+                # self.handle_slots_clicks(mouse)
 
             pygame.display.flip()
             self.clock.tick(FPS)
 
-    def handle_cubes_rolling(self, event):
-        if event.type == pygame.K_SPACE:
-            pass
+    def draw_slots(self):
+        black = Piece("black")
+        white = Piece("white")
+        for slot in self.board.slots:
+            for i in xrange(slot.pieces):
+                if slot.color == "black":
+                    if slot.identity < 12:
+                        self.display.blit(black.image, (slot.x, slot.y + i * black.image.get_height()))
+                    else:
+                        self.display.blit(black.image, (slot.x, slot.y - i * black.image.get_height()))
+                else:
+                    if slot.identity < 12:
+                        self.display.blit(white.image, (slot.x, slot.y + i * white.image.get_height()))
+                    else:
+                        self.display.blit(white.image, (slot.x, slot.y - i * white.image.get_height()))
+        for i in xrange(self.board.burned_black.pieces):
+            self.display.blit(black.image, (self.board.burned_black.x, self.board.burned_black.y - i * black.image.get_height()))
+        for i in xrange(self.board.burned_white.pieces):
+            self.display.blit(white.image, (self.board.burned_white.x, self.board.burned_white.y - i * white.image.get_height()))
+
+
+    def update_screen(self):
+        self.display.blit(self.background.convert(), self.background.get_rect())
+        self.draw_slots()
 
     def handle_slots_clicks(self, mouse):
         clicked_slot = self.get_clicked_slot(mouse)
@@ -198,59 +236,34 @@ class Game(object):
             print "You cannot play with your rival's pieces..."
             return
 
-    def get_clicked_slot(self, mouse):
+    def get_clicked_slot(self, events):
         slot_num = -1
-        if mouse.get_pressed()[0] == 1:
-            slot_num_x = -1
+        if self.board.burned_white.button.is_pressed(events):
+            return self.board.burned_white, self.board.burned_white.identity
 
-            x, y = mouse.get_pos()
-            if (x > sb_constants.LEFT_X[0]) and (x < sb_constants.LEFT_X[1]):
-                slot_num_x = int((x-sb_constants.LEFT_X[0])/((sb_constants.LEFT_X[1] - 10)/sb_constants.NUM_SLOTS_IN_QUARTER)) + 1
-            elif (x > sb_constants.RIGHT_X[0]) and (x < sb_constants.RIGHT_X[1]):
-                slot_num_x = int((x-sb_constants.RIGHT_X[0])/((sb_constants.LEFT_X[1] - 10)/sb_constants.NUM_SLOTS_IN_QUARTER)) + 7
+        if self.board.burned_black.button.is_pressed(events):
+            return self.board.burned_black, self.board.burned_black.identity
 
-            if (y > sb_constants.UP_Y[0]) and (y < sb_constants.UP_Y[1]):
-                slot_num = 12 - slot_num_x
-            elif (y > sb_constants.DOWN_Y[0]) and (y < sb_constants.DOWN_Y[1]):
-                slot_num = 11 + slot_num_x
+        if self.board.out.button.is_pressed(events):
+            return self.board.out, self.board.out.identity
 
-        return self.board.get_slot_by_id(slot_num)
-
-    # draw all the pieces in their correct location in each slot. returns all the pieces
-    def draw_pieces_in_all_slots(self):
-        ps = self.set_pieces_in_all_slots()
-        for slot in ps:
-            for piece in slot:
-                self.display.blit(piece.image.convert_alpha(), (piece.x, piece.y))
-        return ps
-
-    # sets all the pieces in their correct location in each slot. returns all the pieces
-    def set_pieces_in_all_slots(self):
-        pieces_in_slots = []
         for slot in self.board.slots:
-            if slot.color is not "":
-                pieces_in_slots.append(self.set_pieces_in_slot(slot))
-        return pieces_in_slots
+            if slot.button.is_pressed(events):
+                slot_num_x = -1
+                x, y = pygame.mouse.get_pos()
+                if (x > sb_constants.LEFT_X[0]) and (x < sb_constants.LEFT_X[1]):
+                    slot_num_x = int((x-sb_constants.LEFT_X[0])/((sb_constants.LEFT_X[1] - 10)/sb_constants.NUM_SLOTS_IN_QUARTER)) + 1
+                elif (x > sb_constants.RIGHT_X[0]) and (x < sb_constants.RIGHT_X[1]):
+                    slot_num_x = int((x-sb_constants.RIGHT_X[0])/((sb_constants.LEFT_X[1] - 10)/sb_constants.NUM_SLOTS_IN_QUARTER)) + 7
 
-    # sets pieces in a correct arrangement in a given slot. returns the pieces in the slot.
-    def set_pieces_in_slot(self, slot):
-        pieces = Piece.generate_num_pieces(slot.color, slot.pieces)
+                if (y > sb_constants.UP_Y[0]) and (y < sb_constants.UP_Y[1]):
+                    slot_num = 12 - slot_num_x
+                elif (y > sb_constants.DOWN_Y[0]) and (y < sb_constants.DOWN_Y[1]):
+                    slot_num = 11 + slot_num_x
 
-        if slot.y < int(sb_constants.SCREEN_SIZE[1] / 2):
-            for i in range(len(pieces)):
-                pieces[i].x = slot.x
-                pieces[i].y = slot.y + i * sb_constants.OFFSET_SLOT_Y
-        else:
-            for i in range(len(pieces)):
-                pieces[i].x = slot.x
-                pieces[i].y = slot.y - i * sb_constants.OFFSET_SLOT_Y
+                return self.board.get_slot_by_id(slot_num), slot_num
 
-        return pieces
-
-    def roll_show_cubes(self, pc):
-        cubes = self.board.cubes
-        pass
-
+        return None, -1
 
 """
 Represents a game piece in the game, in the graphical way.
@@ -262,11 +275,14 @@ Attributes:
     x - a number that is used to represent the value of the piece in x axis
     y - a number that is used to represent the value of the piece in y axis
 """
+
+
 class Piece(pygame.sprite.Sprite):
     def __init__(self, color):
         pygame.sprite.Sprite.__init__(self)
 
-        if color is "black":
+        self.color = color
+        if self.color is "black":
             self.image = pygame.image.load(
                 os.path.dirname(PATH).replace("new_version", r"imgs\pngs\game_piece_black.png"))
         else:
